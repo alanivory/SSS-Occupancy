@@ -430,7 +430,7 @@ new_dat <- cbind(expand.grid(
 new_dat <- predict(m20, type="state", newdata = new_dat, appendData=TRUE)
 
 
-p1 <- ggplot(new_dat, aes(x = z.Distance.to.Exit, y = Predicted)) +
+P1 <- ggplot(new_dat, aes(x = z.Distance.to.Exit, y = Predicted)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, linetype = "dashed") + # Confidence intervals
   geom_path(size = 1, color = "orange") +  # Set line color to orange
   labs(x = "Distance to Exit", y = "Occupancy Probability") + # axis labels
@@ -440,7 +440,7 @@ p1 <- ggplot(new_dat, aes(x = z.Distance.to.Exit, y = Predicted)) +
     text = element_text(size = 16)  
   )
 
-p1
+P1
 
 ```
 
@@ -506,7 +506,10 @@ P2 = ggplot(nd_all,x=z.Distance.to.Exit,y=Predicted)+
   geom_line(data=nd_4_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="magenta"))+
   geom_line(data=nd_5_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="black"))+
   theme_bw()+xlab("Distance to Exit")+ylab("Occupancy Probability")+
-  theme(legend.position="top", text = element_text(size = 16))
+  theme(legend.position="top", text = element_text(size = 16)) +
+  scale_color_manual(values=c("blue","orange","green","purple","magenta","black"),
+                     labels=c("0 lanes","1 lane","2 lanes","3 lanes","4 lanes","5 lanes"))+
+  labs(color="Number of Lanes of Traffic")
 
 
 
@@ -517,4 +520,21 @@ P2 + scale_color_manual(
 ) +
   labs(color = "Number of Lanes of Traffic")
 
+```
+
+## Figure Grid
+```{r FigureGrid, echo=TRUE}
+final_plot <- (P1 + P2) +
+  plot_annotation(tag_levels = 'a') +
+  plot_layout(widths = c(1, 1), heights = c(1)) & 
+  theme_classic() &
+  theme(legend.position="top")
+
+
+# Print the combined plot
+final_plot
+
+agg_png(file = "final_plot_bat.png", width = 10, height = 3, units = "in", res = 600, scaling = 0.6)
+final_plot
+dev.off()
 ```

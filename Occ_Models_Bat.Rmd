@@ -9,7 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 rm(list=ls())
-pacman::p_load(readxl, ggplot2, ggthemes, tidyr, dplyr, reshape2, unmarked, gtable, grid, gridExtra, jpeg, lubridate, tibble, magrittr, MuMIn, patchwork)
+pacman::p_load(readxl, ggplot2, ggthemes, tidyr, dplyr, reshape2, unmarked, gtable, grid, gridExtra, jpeg, lubridate, tibble, magrittr, MuMIn, patchwork, ragg)
 
 
 observations <- read_excel("StormFindingsT_Bats_UE.xlsx")
@@ -491,17 +491,14 @@ P1 = ggplot(nd_all,x=z.Imp_NLCD,y=Predicted)+
   geom_line(data=nd_0_predict,aes(x=z.Imp_NLCD,y=Predicted,color="blue"))+
   geom_line(data=nd_1_predict,aes(x=z.Imp_NLCD,y=Predicted,color="orange"))+
   geom_line(data=nd_2_predict,aes(x=z.Imp_NLCD,y=Predicted,color="green"))+
-  theme_bw()+xlab("Impervious Surface")+ylab("Occupancy Probability")+
-  theme(legend.position="top", text = element_text(size = 16))
+  theme_classic()+ labs( x= "Impervious Surface", y= "Occupancy Probability", color = "Pipe Size")+
+  theme(legend.position="top") +
+  scale_color_manual(values = c("blue", "orange", "green"),
+                     labels = c("Below Average", "Average", "Above Average"))
 
 
 
-# legend
-P1 <- P1 + scale_color_manual(
-  values = c("blue", "orange", "green"),
-  labels = c("Below Average", "Average", "Above Average")
-) +
-  labs(color = "Pipe Size")
+
 
 P1
 
@@ -526,11 +523,7 @@ P2 <- ggplot(new_dat, aes(x = z.System.Size, y = Predicted)) + # mean line
   geom_path(size = 1, color = 'orange') +
   labs(x = "System Size", y = "Occupancy Probability") + # axis labels
   theme_classic() +
-  coord_cartesian(ylim = c(0,1)) +
-  theme(
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 14),
-  )
+  coord_cartesian(ylim = c(0,1))
 
 P2
 
@@ -564,7 +557,7 @@ nd_all <- data.frame(z.System.Size = rep(seq(min(scale(loc$System.Size)),max(sca
 
 
 
-P3 = ggplot(nd_all,x=z.System.Size,y=Predicted)+
+P3 <- ggplot(nd_all,x=z.System.Size,y=Predicted)+
   geom_ribbon(data=nd_0_predict, aes(x=z.System.Size,ymin=lower,ymax=upper),inherit.aes = FALSE,
               fill = "gray",alpha=0.1)+
   geom_ribbon(data=nd_1_predict, aes(x=z.System.Size,ymin=lower,ymax=upper),inherit.aes = FALSE,
@@ -574,17 +567,11 @@ P3 = ggplot(nd_all,x=z.System.Size,y=Predicted)+
   geom_line(data=nd_0_predict,aes(x=z.System.Size,y=Predicted,color="blue"))+
   geom_line(data=nd_1_predict,aes(x=z.System.Size,y=Predicted,color="orange"))+
   geom_line(data=nd_2_predict,aes(x=z.System.Size,y=Predicted,color="green"))+
-  theme_bw()+xlab("System Size")+ylab("Occupancy Probability")+
-  theme(legend.position="top", text = element_text(size = 16))
-
-
-
-# legend
-P3 <- P3 + scale_color_manual(
-  values = c("blue", "orange", "green"),
-  labels = c("Near", "Average", "Far")
-) +
-  labs(color = "Distance to Nearest Exit")
+  theme_classic()+
+  labs(x = "System Size", y = "Occupancy Probability", color = "Distance to Nearest Exit")+
+  theme(legend.position="top") +
+  scale_color_manual(values = c("blue", "orange", "green"),
+                     labels = c("Near", "Average", "Far"))
 
 P3
 ```
@@ -606,12 +593,8 @@ P4 <- ggplot(new_dat, aes(x = z.Imp_NLCD, y = Predicted)) + # mean line
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, linetype = "dashed") + #Confidence intervals
   geom_path(size = 1, color = 'orange') +
   labs(x = "Impervious Surface", y = "Occupancy Probability") + # axis labels
-  theme_classic() +
   coord_cartesian(ylim = c(0,1)) +
-  theme(
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 14),
-  )
+  theme_classic()
 
 P4
 
@@ -655,28 +638,30 @@ P5 = ggplot(nd_all,x=z.System.Size,y=Predicted)+
   geom_line(data=nd_0_predict,aes(x=z.System.Size,y=Predicted,color="blue"))+
   geom_line(data=nd_1_predict,aes(x=z.System.Size,y=Predicted,color="orange"))+
   geom_line(data=nd_2_predict,aes(x=z.System.Size,y=Predicted,color="green"))+
-  theme_bw()+xlab("System Size")+ylab("Occupancy Probability")+
-  theme(legend.position="top", text = element_text(size = 16))
-
-
-
-# legend
-P5 <- P5 + scale_color_manual(
-  values = c("blue", "orange", "green"),
-  labels = c("Below Average", "Average", "Above Average")
-) +
-  labs(color = "Imperious Surface %")
-
+  scale_color_manual(values = c("blue", "orange", "green"),
+                     labels = c("Below Average", "Average", "Above Average")) +
+  labs(color = "Impervious Surface %", x= "System Size", x = "Occupancy Probability") +
+  theme_classic() +
+  theme(legend.position="top")
 P5
 ```
 
 
 ## Figure Grid
 ```{r FigureGrid, echo=TRUE}
-final_plot <- (P1 + P2 + P3) / (P4 + P5) + plot_annotation(tag_levels = 'A')
+final_plot <- (P4 + P3) / (P5 + P1) / (P2+ plot_spacer()) +
+  plot_annotation(tag_levels = 'a') +
+  plot_layout(widths = c(1, 1), heights = c(1, 1, 1)) & 
+  theme_classic() &
+  theme(legend.position="top")
+
 
 # Print the combined plot
 final_plot
+
+agg_png(file = "final_plot.png", width = 6, height = 5, units = "in", res = 600, scaling = 0.6)
+final_plot
+dev.off()
 ```
 
 
