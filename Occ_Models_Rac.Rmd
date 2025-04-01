@@ -1,0 +1,520 @@
+---
+title: "Stormwater Occupancy Models"
+author: "Alan Ivory"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(readxl,questionr, parameters, ggplot2, ggthemes, tidyr, dplyr, reshape2, unmarked, gtable, grid, gridExtra, jpeg, lubridate, tibble, magrittr, MuMIn)
+
+rm(list=ls()) 
+
+
+observations <- read_excel("StormFindingsT_UE.xlsx")
+
+```
+
+## Data Wrangling
+
+# Format data weekly
+
+```{r DataWeek}
+observations_weekly <- observations %>%
+  group_by(OID, week = format(as.Date(Date), "%Y-%U"), Species) %>%
+  summarise(observations = n()) %>%
+  ungroup()
+
+observations_species <- observations_weekly %>%
+  pivot_wider(names_from = Species, values_from = observations)
+```
+
+# Focal Species
+
+```{r FocSpecies, echo=FALSE}
+focal_sp='Procyon_lotor'
+
+observations_species_filled <- observations_species %>%
+  mutate(across(all_of(focal_sp), ~ replace_na(.x, 0)))
+
+```
+
+# Occupancy Table
+
+```{r OccupancyTable}
+y_dat <- observations_species_filled[,c("OID", "week", focal_sp)] %>% # Subset to just raccoons
+  pivot_wider(names_from = week , values_from = focal_sp) # Shift to wide format
+
+y_mat <- as.matrix(y_dat[,unique(observations_species_filled$week)])
+
+row.names(y_mat) <- y_dat$OID
+
+y_mat[y_mat>1 & is.na(y_mat)==F] <- 1
+
+```
+
+# Import Effort Matrix and Location Data
+
+```{r EffLoc}
+loc <- read_excel("locT_UE.xlsx")
+Eff_Mat <- read_excel("Eff_Mat_UE.xlsx")
+
+table(loc$OID == row.names(y_mat))
+
+```
+
+# Standardizing covariates
+
+```{r Standardize}
+z_locs <- stdize(loc)
+
+```
+
+# Build Unmarked Frame
+
+```{r UnmarkedOccu}
+un_dat <- unmarkedFrameOccu(y = y_mat, # occupancy data
+                            siteCovs = z_locs) # site covariates 
+```
+
+# General Model
+
+```{r GenModel}
+m0 <- occu(formula = ~1 # detection formula first
+           ~1, # occupancy formula second,
+           data = un_dat)
+
+summary(m0)
+
+
+backTransform(m0, type = "state")
+
+backTransform(m0, type = "det")
+
+```
+
+# Model Building
+
+```{r ModelBuild}
+
+# Fit general model all variables
+m0 <- occu(formula = ~1 # detection formula first
+           ~1, # occupancy formula second,
+           data = un_dat)
+
+
+####This is the only one I have worked with as of 7/11/2023
+# Occupancy is influence by System Size####
+m1 <- occu(formula = ~1 # detection formula first
+           ~z.System.Size, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Traffic
+#m2 <- occu(formula = ~1 # detection formula first
+          # ~z.Speed.Limit, # occupancy formula second,
+          # data = un_dat)
+
+#This is the second one I have worked with as of 7/11/2023
+# Occupancy is influence by Distance to exit
+m3 <- occu(formula = ~1 # detection formula first
+           ~z.Distance.to.Exit, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Pipes within 100M
+m4 <- occu(formula = ~1 # detection formula first
+           ~z.Pipe.within.100M, # occupancy formula second,
+           data = un_dat)
+
+
+#This is the third one I have worked with as of 7/11/2023
+# Occupancy is influence by Distance to Pond
+m5 <- occu(formula = ~1 # detection formula first
+           ~z.Pipe.Size, # occupancy formula second,
+           data = un_dat)
+
+
+# Occupancy is influence by Number of Nodes
+m6 <- occu(formula = ~1 # detection formula first
+           ~z.Nodes, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Number of Nodes
+m7 <- occu(formula = ~1 # detection formula first
+           ~z.Cross.Road, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Nearest Road Size
+m8 <- occu(formula = ~1 # detection formula first
+           ~z.Nearest.Road.Size, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Distance from Light
+m9 <- occu(formula = ~1 # detection formula first
+           ~z.Depth, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Distance to exit
+#m10 <- occu(formula = ~1 # detection formula first
+      #      ~z.Distance.to.Pond, # occupancy formula second,
+       #     data = un_dat)
+
+
+# Occupancy is influence by Impervious Surface percentage
+m11 <- occu(formula = ~1 # detection formula first
+            ~z.Imp_NLCD, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Impervious Surface percentage and Speed Limit
+#m12 <- occu(formula = ~1 # detection formula first
+          #  ~z.Impervious.Percentage + z.Speed.Limit, # occupancy formula second,
+         #   data = un_dat)
+
+# Occupancy is influence by Distance to an exit and Distance to a Pond
+#m13 <- occu(formula = ~1 # detection formula first
+      #      ~z.Distance.to.Exit + z.Distance.to.Pond, # occupancy formula second,
+     #       data = un_dat)
+
+# Occupancy is influence by Distance to an exit and SSS Pipe Size
+m14 <- occu(formula = ~1 # detection formula first
+            ~z.Distance.to.Exit + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Impervious Surface percentage and SSS System Size
+m15 <- occu(formula = ~1 # detection formula first
+            ~z.Imp_NLCD + z.System.Size, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Distance to an exit and Nearest Road Size
+m16 <- occu(formula = ~1 # detection formula first
+            ~z.Distance.to.Exit + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Distance to an exit and Speed Limit
+#m17 <- occu(formula = ~1 # detection formula first
+     #       ~z.Distance.to.Exit + z.Speed.Limit, # occupancy formula second,
+     #       data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by System Size####
+m18 <- occu(formula = ~z.Depth # detection formula first
+           ~z.System.Size, # occupancy formula second,
+           data = un_dat)
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Speed Limit####
+#m19 <- occu(formula = ~z.Depth # detection formula first
+      #      ~z.Speed.Limit, # occupancy formula second,
+      #      data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by System Size####
+m20 <- occu(formula = ~z.Depth # detection formula first
+           ~z.Distance.to.Exit, # occupancy formula second,
+           data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Pipe Avalibility within 100M####
+m21 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Pipe.within.100M, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Pipe size####
+m22 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Number of pipe nodes at camera site####
+m23 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by if the pipe crosses the road####
+m24 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Cross.Road, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Nearest Road Size####
+m25 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance from the camera to the ground####
+m26 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Depth, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Distance to pond####
+#m27 <- occu(formula = ~z.Depth # detection formula first
+        #    ~z.Distance.to.Pond, # occupancy formula second,
+         #   data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Impervious Surface percentage####
+m28 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Imp_NLCD, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Impervious Surface percentage and Speed Limit
+#m29 <- occu(formula = ~z.Depth # detection formula first
+       #     ~z.Impervious.Percentage + z.Speed.Limit, # occupancy formula second,
+       #     data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the distance to a pond
+#m30 <- occu(formula = ~z.Depth # detection formula first
+ #           ~z.Distance.to.Exit + z.Distance.to.Pond, # occupancy formula second,
+  #          data = un_dat)
+
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the pipe size
+m31 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Distance.to.Exit + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by Impervious Surface percentage and System size
+m32 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Imp_NLCD + z.System.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the nearest road size
+m33 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Distance.to.Exit + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the speed limit
+#m34 <- occu(formula = ~z.Depth # detection formula first
+     #       ~z.Distance.to.Exit + z.Speed.Limit, # occupancy formula second,
+     #       data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by if the systems crosses a road and the nearest road size
+m35 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Cross.Road + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the impervious percentage and the pipe size
+m36 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Imp_NLCD + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the system size and the depth
+m37 <- occu(formula = ~z.Depth # detection formula first
+            ~z.System.Size + z.Depth, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the nodes
+m38 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Distance.to.Exit + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the pipe avalibility and nodes
+m39 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Pipe.within.100M + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the system size
+m40 <- occu(formula = ~z.Depth # detection formula first
+            ~z.Distance.to.Exit + z.System.Size, # occupancy formula second,
+            data = un_dat)
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by if the systems crosses a road and the nearest road size
+m41 <- occu(formula = ~1 # detection formula first
+            ~z.Cross.Road + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the impervious percentage and the pipe size
+m42 <- occu(formula = ~1 # detection formula first
+            ~z.Imp_NLCD + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the system size and the depth
+m43 <- occu(formula = ~1 # detection formula first
+            ~z.System.Size + z.Depth, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the nodes
+m44 <- occu(formula = ~1 # detection formula first
+            ~z.Distance.to.Exit + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the pipe avalibility and nodes
+m45 <- occu(formula = ~1 # detection formula first
+            ~z.Pipe.within.100M + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the system size
+m46 <- occu(formula = ~1 # detection formula first
+            ~z.Distance.to.Exit + z.System.Size, # occupancy formula second,
+            data = un_dat)
+```
+
+# Model Selection
+
+```{r ModelSelect, echo=TRUE}
+model.sel(m0,m1,m3,m4,m5,m6,m7,m8,m9,m11,m14,m15,m16,m18,
+          m20,m21,m22,m23,m24,m25,m26,m28,m31,m32,m33,m35,m36,m37,m38,m39,m40,m41,m42,m43,m44,m45,m46)
+
+#Model Selector without additive covariants
+#model.sel(m0,m1,m3,m4,m5,m6,m7,m8,m9,m11,m18,m20,m21,m22,m23,m24,m25,m26,m28)
+```
+
+# Summary of Best Model
+
+```{r BestModel, echo=TRUE}
+summary(m20)
+summary(m33)
+```
+
+## Odds Ratios- Raccoon
+```{r OddsRatios_raccoon1, echo=TRUE}
+test = summary(m20)
+
+vcov_matrix <- vcov(m20)
+
+# Detection
+# Calculate the odds ratio
+odds_ratio <- exp(summary(m20)$det$Estimate[2]) # Insert log odds ratio
+odds_ratio
+
+# Calculate the SE of the odds ratio using the delta method
+se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
+se_odds_ratio
+
+# Occupancy
+# Calculate the odds ratio
+odds_ratio <- exp(summary(m20)$state$Estimate[2]) # Insert log odds ratio
+odds_ratio
+
+# Calculate the SE of the odds ratio using the delta method
+se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
+se_odds_ratio
+```
+
+## Odds Ratios- Raccoon2
+```{r OddsRatios_raccoon2, echo=TRUE}
+test1 = summary(m33)
+vcov_matrix <- vcov(m33)
+
+# Detection
+# Calculate the odds ratio
+odds_ratio <- exp(summary(m33)$det$Estimate[2]) # Insert log odds ratio
+odds_ratio
+
+# Calculate the SE of the odds ratio using the delta method
+se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
+se_odds_ratio
+
+# Occupancy- Distance to Exit
+# Calculate the odds ratio
+odds_ratio <- exp(summary(m33)$state$Estimate[2]) # Insert log odds ratio
+odds_ratio
+
+# Calculate the SE of the odds ratio using the delta method
+se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
+se_odds_ratio
+
+# Occupancy- Nearest Road Size
+# Calculate the odds ratio
+odds_ratio <- exp(summary(m33)$state$Estimate[3]) # Insert log odds ratio
+odds_ratio
+
+# Calculate the SE of the odds ratio using the delta method
+se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
+se_odds_ratio
+```
+
+### Distance to Exit Occupancy Model
+
+```{r BestMod_Dist, echo=TRUE}
+
+# Generate new data to predict from 
+new_dat <- cbind(expand.grid(
+  z.Distance.to.Exit=seq(min(z_locs$z.Distance.to.Exit),max(z_locs$z.Distance.to.Exit), 
+                         length.out=25)))
+
+# Make the predicted values                
+new_dat <- predict(m20, type="state", newdata = new_dat, appendData=TRUE)
+
+
+p1 <- ggplot(new_dat, aes(x = z.Distance.to.Exit, y = Predicted)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, linetype = "dashed") + # Confidence intervals
+  geom_path(size = 1, color = "orange") +  # Set line color to orange
+  labs(x = "Distance to Exit", y = "Occupancy Probability") + # axis labels
+  theme_classic() +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme(
+    text = element_text(size = 16)  
+  )
+
+p1
+
+```
+
+### Set up for Additive Model with Distance to Exit and Nearest Road Size
+
+```{r SetUp_BestMod_DistLanes, echo=TRUE}
+
+#just looking at the model output
+summary(m33)
+nd = data.frame()
+
+
+nd_0 = data.frame(z.Distance.to.Exit=seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),
+                     z.Nearest.Road.Size=rep(0,100))
+nd_0_predict = predict(m33,type="state",newdata=nd_0,appendData=TRUE)
+
+nd_1 = data.frame(z.Distance.to.Exit=seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),
+                  z.Nearest.Road.Size=rep(1,100))
+nd_1_predict = predict(m33,type="state",newdata=nd_1,appendData=TRUE)
+
+nd_2 = data.frame(z.Distance.to.Exit=seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),
+                  z.Nearest.Road.Size=rep(2,100))
+nd_2_predict = predict(m33,type="state",newdata=nd_2,appendData=TRUE)
+
+nd_3 = data.frame(z.Distance.to.Exit=seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),
+                  z.Nearest.Road.Size=rep(3,100))
+nd_3_predict = predict(m33,type="state",newdata=nd_3,appendData=TRUE)
+
+nd_4 = data.frame(z.Distance.to.Exit=seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),
+                  z.Nearest.Road.Size=rep(4,100))
+nd_4_predict = predict(m33,type="state",newdata=nd_4,appendData=TRUE)
+
+nd_5 = data.frame(z.Distance.to.Exit=seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),
+                  z.Nearest.Road.Size=rep(5,100))
+nd_5_predict = predict(m33,type="state",newdata=nd_5,appendData=TRUE)
+
+nd_all <- data.frame(z.Distance.to.Exit = rep(seq(min(scale(loc$Distance.to.Exit)),max(scale(loc$Distance.to.Exit)),length=100),6), 
+                     z.Nearest.Road.Size = c(rep(0,100),rep(1,100),rep(2,100),rep(3,100),rep(4,100),rep(5,100)),
+                     Predicted =c(nd_0_predict$Predicted,nd_1_predict$Predicted,nd_2_predict$Predicted,
+                                  nd_3_predict$Predicted,nd_4_predict$Predicted,nd_5_predict$Predicted),
+                     lower = c(nd_0_predict$lower,nd_1_predict$lower,nd_2_predict$lower,
+                               nd_3_predict$lower,nd_4_predict$lower,nd_5_predict$lower),
+                     upper=c(nd_0_predict$upper,nd_1_predict$upper,nd_2_predict$upper,
+                             nd_3_predict$upper,nd_4_predict$upper,nd_5_predict$upper))
+
+```
+
+### Distance to Exit and Nearest Road Size Occupancy Model
+
+```{r BestMod_DistLanes, echo=TRUE}
+
+P2 = ggplot(nd_all,x=z.Distance.to.Exit,y=Predicted)+
+  geom_ribbon(data=nd_0_predict, aes(x=z.Distance.to.Exit,ymin=lower,ymax=upper),inherit.aes = FALSE,fill = "gray",alpha=0.1)+
+  geom_ribbon(data=nd_1_predict, aes(x=z.Distance.to.Exit,ymin=lower,ymax=upper),inherit.aes = FALSE,fill = "gray",alpha=0.1)+
+  geom_ribbon(data=nd_2_predict, aes(x=z.Distance.to.Exit,ymin=lower,ymax=upper),inherit.aes = FALSE,fill = "gray",alpha=0.1)+
+  geom_ribbon(data=nd_3_predict, aes(x=z.Distance.to.Exit,ymin=lower,ymax=upper),inherit.aes = FALSE,fill = "gray",alpha=0.1)+
+  geom_ribbon(data=nd_4_predict, aes(x=z.Distance.to.Exit,ymin=lower,ymax=upper),inherit.aes = FALSE,fill = "gray",alpha=0.1)+
+  geom_ribbon(data=nd_5_predict, aes(x=z.Distance.to.Exit,ymin=lower,ymax=upper),inherit.aes = FALSE,fill = "gray",alpha=0.1)+
+  geom_line(data=nd_0_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="blue"))+
+  geom_line(data=nd_1_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="orange"))+
+  geom_line(data=nd_2_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="green"))+
+  geom_line(data=nd_3_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="purple"))+
+  geom_line(data=nd_4_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="magenta"))+
+  geom_line(data=nd_5_predict,aes(x=z.Distance.to.Exit,y=Predicted,color="black"))+
+  theme_bw()+xlab("Distance to Exit")+ylab("Occupancy Probability")+
+  theme(legend.position="top", text = element_text(size = 16))
+
+
+
+# legend
+P2 + scale_color_manual(
+  values = c("blue", "orange", "green", "purple", "magenta", "black"),
+  labels = c("0 lanes", "1 lane", "2 lanes", "3 lanes", "4 lanes", "5 lanes")
+) +
+  labs(color = "Number of Lanes of Traffic")
+
+```

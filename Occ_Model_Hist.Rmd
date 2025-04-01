@@ -1,0 +1,215 @@
+---
+title: "SSS Covariant Histogram"
+author: "Alan Ivory"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Histogram of the SSS Covariantes  
+No longer being used
+```{r Hist}
+library(readxl)
+
+locT <- read_excel("locT_Bat_UE.xlsx")
+
+# 3x3 grid of histograms
+par(mfrow=c(3, 3))
+
+# font size
+label_font_size <- 1.5
+
+# histograms
+hist(locT$Imp_NLCD, main="Impervious Surfaces within 100m", xlab="Percentage (%)", 
+     col="lightblue",cex.lab=label_font_size)
+abline(v=mean(locT$Imp_NLCD), col="red", lwd=2)  # Mean
+
+hist(locT$Distance.to.Exit, main="Nearest Exit from Camera Site", xlab="Distance (m)", col="lightgreen",
+     cex.lab=label_font_size)
+abline(v=mean(locT$Distance.to.Exit), col="red", lwd=2)  
+
+hist(locT$PipeSizeCM, main="Pipe Diameter", xlab="Pipe Diameter (cm)", col="lightcoral",
+     cex.lab=label_font_size)
+abline(v=mean(locT$PipeSizeCM), col="red", lwd=2)  
+
+hist(locT$Pipe.within.100M, main="Pipe Length Within 100m", xlab="Pipe Length (m)", col="lightyellow",
+     cex.lab=label_font_size)
+abline(v=mean(locT$Pipe.within.100M), col="red", lwd=2)  
+
+hist(locT$System.Size, main="System Size", xlab="Pipe Length (m)", col="lightgoldenrod",
+     cex.lab=label_font_size)
+abline(v=mean(locT$System.Size), col="red", lwd=2)  
+
+hist(locT$Depth, main="Depth", xlab="Depth (m)", col="lightpink",
+     cex.lab=label_font_size)
+abline(v=mean(locT$Depth), col="red", lwd=2)  
+
+hist_data <- hist(locT$Nodes, main="Number of Nodes", xlab="Count", col="lightslateblue", breaks=c(0.5, 1.5, 2.5, 3.5, 4.5),
+                  cex.lab=label_font_size)
+
+axis(1, at=1:4, labels=1:4)
+abline(v=mean(locT$Nodes), col="red", lwd=2)  
+
+
+hist(locT$Cross.Road, main="Does the SSS Cross a Road", xlab="", col = "lightcyan",
+     breaks=c(-0.5, 0.5, 1.5), ylim=c(0, max(table(locT$Cross.Road))),cex.lab=label_font_size, xaxt="n")
+abline(v=mean(locT$Cross.Road), col="red", lwd=2)  
+
+
+axis(1, at=c(0, 1), labels=c("No", "Yes"), cex.lab=label_font_size)
+
+hist(locT$Nearest.Road.Size, main="Nearest Road Size", xlab="Number of Lanes", col="lightgray", breaks=0:4,
+     cex.lab=label_font_size)
+abline(v=mean(locT$Nearest.Road.Size), col="red", lwd=2)  
+
+
+
+par(mfrow=c(1, 1))
+
+```
+
+
+## Histogram of the SSS Covariantes
+
+```{r HistPlot}
+pacman::p_load(ggplot2, dplyr, gridExtra)
+
+
+# Cross.Road to a factor
+locT <- locT %>%
+  mutate(Cross.Road = factor(Cross.Road, labels = c("No", "Yes")))
+
+create_histogram <- function(data, variable, binwidth = NULL, title = NULL, x_label = NULL) {
+  mean_value <- mean(data[[variable]], na.rm = TRUE)  # Calculate the mean
+  ggplot(data, aes_string(x = variable)) +
+    geom_histogram(binwidth = binwidth, fill = "steelblue", color = "black", alpha = 0.7) +
+    geom_vline(xintercept = mean_value, color = "red", linetype = "dashed", size = 1) +
+    labs(title = title, x = x_label, y = "Frequency") +
+    theme_minimal()
+}
+
+
+# Imp_NLCD
+p1 <- create_histogram(locT, "Imp_NLCD", binwidth = 5, title = "Impervious Surfaces", x_label = "Percentage (%)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 5))
+
+# Distance.to.Exit
+p2 <- create_histogram(locT, "Distance.to.Exit", binwidth = 10, title = "Nearest Exit Distance", x_label = "Distance (m)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 10))
+
+# Pipe.Size
+p3 <- create_histogram(locT, "PipeSizeCM", binwidth = 25, title = "Pipe Size of SSS", x_label = "Pipe Diameter (cm)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 20))
+
+# Pipe.within.100M
+p4 <- create_histogram(locT, "Pipe.within.100M", binwidth = 25, title = "Pipe Length Within 100m", x_label = "Pipe Length (m)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 5))
+
+# System.Size
+p5 <- create_histogram(locT, "System.Size", binwidth = 1000, title = "System Size", x_label = "Pipe Length (m)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 30))
+
+# Depth
+p6 <- create_histogram(locT, "Depth", binwidth = 0.5, title = "Depth", x_label = "Depth (m)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 10))
+
+# Nodes (whole numbers)
+p7 <- create_histogram(locT, "Nodes", binwidth = 1, title = "Pipe Nodes", x_label = "Node Count") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 20))
+
+# Cross.Road (Yes/No)
+p8 <- ggplot(locT, aes(x = Cross.Road)) +
+  geom_bar(fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(title = "Road Crossing", x = "Does the SSS Cross a Road?", y = "Frequency") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 30)) +
+  theme_minimal()
+
+# Nearest.Road.Size (whole numbers)
+p9 <- create_histogram(locT, "Nearest.Road.Size", binwidth = 1, title = "Nearest Road Size", x_label = "Number of Lanes") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 25))
+
+# Display plots in a grid
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, ncol = 3)
+
+
+
+
+```
+
+```{r HistValues}
+# mean value of impervious surfaces
+mean(locT$Imp_NLCD)
+
+#mean value of impervious surfaces based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_Imp_NLCD = mean(Imp_NLCD, na.rm = TRUE))
+
+# mean value of distance to exit
+mean(locT$Distance.to.Exit)
+range(locT$Distance.to.Exit)
+
+# mean value of distance to exit based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_Distance_to_Exit = mean(Distance.to.Exit, na.rm = TRUE))
+
+# mean value of pipe size
+mean(locT$PipeSizeCM)
+range(locT$PipeSizeCM)
+
+# mean value of pipe size based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_PipeSizeCM = mean(PipeSizeCM, na.rm = TRUE))
+
+# mean value of pipe length within 100m
+mean(locT$Pipe.within.100M)
+range(locT$Pipe.within.100M)
+
+# mean value of pipe length within 100m based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_Pipe_within_100M = mean(Pipe.within.100M, na.rm = TRUE))
+
+# mean value of system size
+mean(locT$System.Size)
+
+# mean value of system size based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_System_Size = mean(System.Size, na.rm = TRUE))
+
+# mean value of depth
+mean(locT$Depth)
+
+# mean value of depth based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_Depth = mean(Depth, na.rm = TRUE))
+
+# mean value of nodes
+mean(locT$Nodes)
+
+# mean value of nodes based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_Nodes = mean(Nodes, na.rm = TRUE))
+
+# proportion of SSS that cross a road
+prop.table(table(locT$Cross.Road))
+
+# proportion of SSS that cross a road based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(prop_Cross_Road = sum(Cross.Road == "Yes") / n())
+
+# mean value of nearest road size
+mean(locT$Nearest.Road.Size)
+
+# mean value of nearest road size based on system type
+locT %>%
+  group_by(System_Type) %>%
+  summarise(mean_Nearest_Road_Size = mean(Nearest.Road.Size, na.rm = TRUE))
+
+```
+
+
+
+
+
+
+
+
+
