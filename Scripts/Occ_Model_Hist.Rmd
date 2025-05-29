@@ -11,6 +11,9 @@ No longer being used
 library(readxl)
 
 locT <- read_excel("locT_Bat_UE.xlsx")
+# Depth to cm
+locT <- locT %>%
+  mutate(Depth = Depth * 100)  # Convert depth to cm
 
 # 3x3 grid of histograms
 par(mfrow=c(3, 3))
@@ -104,7 +107,7 @@ p4 <- create_histogram(locT, "Pipe.within.100M", binwidth = 25, title = "Pipe Le
 p5 <- create_histogram(locT, "System.Size", binwidth = 1000, title = "System Size", x_label = "Pipe Length (m)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 30))
 
 # Depth
-p6 <- create_histogram(locT, "Depth", binwidth = 0.5, title = "Depth", x_label = "Depth (m)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 10))
+p6 <- create_histogram(locT, "Depth", binwidth = 50, title = "Depth", x_label = "Depth (cm)") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 10))
 
 # Nodes (whole numbers)
 p7 <- create_histogram(locT, "Nodes", binwidth = 1, title = "Pipe Nodes", x_label = "Node Count") + scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0, 20))
@@ -123,8 +126,8 @@ p9 <- create_histogram(locT, "Nearest.Road.Size", binwidth = 1, title = "Nearest
 grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, ncol = 3)
 
 
-
-
+# Save the plots as a single image
+ggsave("SSS_Covariates_Histograms.png", width = 15, height = 10, dpi = 300)
 ```
 
 ```{r HistValues}

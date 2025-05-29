@@ -60,6 +60,8 @@ y_mat[y_mat>1 & is.na(y_mat)==F] <- 1
 
 ```{r EffLoc}
 loc <- read_excel("locT_UE.xlsx")
+loc$Mount <- as.numeric(factor(loc$Mount, levels = c("Magnet", "Tree"), labels = c(1, 2)))
+
 Eff_Mat <- read_excel("Eff_Mat_UE.xlsx")
 
 table(loc$OID == row.names(y_mat))
@@ -106,7 +108,6 @@ m0 <- occu(formula = ~1 # detection formula first
            data = un_dat)
 
 
-####This is the only one I have worked with as of 7/11/2023
 # Occupancy is influence by System Size####
 m1 <- occu(formula = ~1 # detection formula first
            ~z.System.Size, # occupancy formula second,
@@ -117,7 +118,6 @@ m1 <- occu(formula = ~1 # detection formula first
           # ~z.Speed.Limit, # occupancy formula second,
           # data = un_dat)
 
-#This is the second one I have worked with as of 7/11/2023
 # Occupancy is influence by Distance to exit
 m3 <- occu(formula = ~1 # detection formula first
            ~z.Distance.to.Exit, # occupancy formula second,
@@ -129,7 +129,6 @@ m4 <- occu(formula = ~1 # detection formula first
            data = un_dat)
 
 
-#This is the third one I have worked with as of 7/11/2023
 # Occupancy is influence by Distance to Pond
 m5 <- occu(formula = ~1 # detection formula first
            ~z.Pipe.Size, # occupancy formula second,
@@ -340,13 +339,183 @@ m45 <- occu(formula = ~1 # detection formula first
 m46 <- occu(formula = ~1 # detection formula first
             ~z.Distance.to.Exit + z.System.Size, # occupancy formula second,
             data = un_dat)
+
+# Detection is influenced by the mounting type, Occupancy is influence by System Size####
+m47 <- occu(formula = ~z.Mount # detection formula first
+           ~z.Distance.to.Exit, # occupancy formula second,
+           data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mounting type, Occupancy is influence by System Size####
+m48 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+           ~z.Distance.to.Exit, # occupancy formula second,
+           data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by if the systems crosses a road and the nearest road size
+m49 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Cross.Road + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by the impervious percentage and the pipe size
+m50 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Imp_NLCD + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by the system size and the depth
+m51 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.System.Size + z.Depth, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by the distance to an exit and the nodes
+m52 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Distance.to.Exit + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by the pipe avalibility and nodes
+m53 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Pipe.within.100M + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by the distance to an exit and the system size
+m54 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Distance.to.Exit + z.System.Size, # occupancy formula second,
+            data = un_dat)
+# Detection is influenced by the mount type, Occupancy is influence by if the systems crosses a road and the nearest road size
+m55 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Cross.Road + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the mount type, Occupancy is influence by the impervious percentage and the pipe size
+m56 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Imp_NLCD + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the mount type, Occupancy is influence by the system size and the depth
+m57 <- occu(formula = ~z.Mount # detection formula first
+            ~z.System.Size + z.Depth, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground, Occupancy is influence by the distance to an exit and the nodes
+m58 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Distance.to.Exit + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the mount type, Occupancy is influence by the pipe avalibility and nodes
+m59 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Pipe.within.100M + z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the mount type, Occupancy is influence by the distance to an exit and the system size
+m60 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Distance.to.Exit + z.System.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by Impervious Surface percentage####
+m61 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Imp_NLCD, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by Pipe Avalibility within 100M####
+m62 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Pipe.within.100M, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by Pipe size####
+m63 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by Number of pipe nodes at camera site####
+m64 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Nodes, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by if the pipe crosses the road####
+m65 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Cross.Road, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by Nearest Road Size####
+m66 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by the distance from the camera to the ground####
+m67 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+            ~z.Depth, # occupancy formula second,
+            data = un_dat)
+
+# Detection is influenced by the distance from the camera to the ground and mount type, Occupancy is influence by System Size####
+m68 <- occu(formula = ~z.Depth + z.Mount # detection formula first
+           ~z.System.Size, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Distance to an exit and SSS Pipe Size. Detection by mount type
+m69 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Distance.to.Exit + z.Pipe.Size, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Impervious Surface percentage and SSS System Size. Detection by mount type
+m70 <- occu(formula = ~ z.Mount # detection formula first
+            ~z.Imp_NLCD + z.System.Size, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Distance to an exit and Nearest Road Size. Detection by mount type
+m71 <- occu(formula = ~z.Mount # detection formula first
+            ~z.Distance.to.Exit + z.Nearest.Road.Size, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Impervious Surface percentage. Detection by mount type
+m72 <- occu(formula = ~ z.Mount # detection formula first
+            ~z.Imp_NLCD, # occupancy formula second,
+            data = un_dat)
+
+# Occupancy is influence by Pipes within 100M. Detection by mount type
+m74 <- occu(formula = ~ z.Mount # detection formula first
+           ~z.Pipe.within.100M, # occupancy formula second,
+           data = un_dat)
+
+
+# Occupancy is influence by Distance to Pond. Detection by mount type
+m75 <- occu(formula = ~z.Mount # detection formula first
+           ~z.Pipe.Size, # occupancy formula second,
+           data = un_dat)
+
+
+# Occupancy is influence by Number of Nodes. Detection by mount type
+m76 <- occu(formula = ~z.Mount # detection formula first
+           ~z.Nodes, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Number of Nodes. Detection by mount type
+m77 <- occu(formula = ~z.Mount # detection formula first
+           ~z.Cross.Road, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Nearest Road Size. Detection by mount type
+m78 <- occu(formula = ~z.Mount # detection formula first
+           ~z.Nearest.Road.Size, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by Distance from Light. Detection by mount type
+m79 <- occu(formula = ~z.Mount # detection formula first
+           ~z.Depth, # occupancy formula second,
+           data = un_dat)
+
+# Occupancy is influence by System Size#### detection by mount type
+m80 <- occu(formula = ~z.Mount # detection formula first
+           ~z.System.Size, # occupancy formula second,
+           data = un_dat)
 ```
 
 # Model Selection
 
 ```{r ModelSelect, echo=TRUE}
 model.sel(m0,m1,m3,m4,m5,m6,m7,m8,m9,m11,m14,m15,m16,m18,
-          m20,m21,m22,m23,m24,m25,m26,m28,m31,m32,m33,m35,m36,m37,m38,m39,m40,m41,m42,m43,m44,m45,m46)
+          m20,m21,m22,m23,m24,m25,m26,m28,m31,m32,m33,m35,
+          m36,m37,m38,m39,m40,m41,m42,m43,m44,m45,m46,m47,
+          m48,m49,m50,m51,m52,m53,m54,m55,m56,m57,m58,m59,
+          m60,m61,m62,m63,m64,m65,m66,m67,m68,m69,m70,m71,
+          m72,m74,m75,m76,m77,m78,m79,m80)
 
 #Model Selector without additive covariants
 #model.sel(m0,m1,m3,m4,m5,m6,m7,m8,m9,m11,m18,m20,m21,m22,m23,m24,m25,m26,m28)
@@ -355,8 +524,8 @@ model.sel(m0,m1,m3,m4,m5,m6,m7,m8,m9,m11,m14,m15,m16,m18,
 # Summary of Best Model
 
 ```{r BestModel, echo=TRUE}
+summary(m48)
 summary(m20)
-summary(m33)
 ```
 
 ## Odds Ratios- Raccoon
@@ -386,12 +555,21 @@ se_odds_ratio
 
 ## Odds Ratios- Raccoon2
 ```{r OddsRatios_raccoon2, echo=TRUE}
-test1 = summary(m33)
-vcov_matrix <- vcov(m33)
+test1 = summary(m48)
+vcov_matrix <- vcov(m48)
 
 # Detection
 # Calculate the odds ratio
-odds_ratio <- exp(summary(m33)$det$Estimate[2]) # Insert log odds ratio
+odds_ratio <- exp(summary(m48)$det$Estimate[2]) # Insert log odds ratio
+odds_ratio
+
+# Calculate the SE of the odds ratio using the delta method
+se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
+se_odds_ratio
+
+# Mount
+# Calculate the odds ratio
+odds_ratio <- exp(summary(m48)$det$Estimate[3]) # Insert log odds ratio
 odds_ratio
 
 # Calculate the SE of the odds ratio using the delta method
@@ -400,16 +578,7 @@ se_odds_ratio
 
 # Occupancy- Distance to Exit
 # Calculate the odds ratio
-odds_ratio <- exp(summary(m33)$state$Estimate[2]) # Insert log odds ratio
-odds_ratio
-
-# Calculate the SE of the odds ratio using the delta method
-se_odds_ratio <- sqrt(odds_ratio^2 * diag(vcov_matrix))
-se_odds_ratio
-
-# Occupancy- Nearest Road Size
-# Calculate the odds ratio
-odds_ratio <- exp(summary(m33)$state$Estimate[3]) # Insert log odds ratio
+odds_ratio <- exp(summary(m48)$state$Estimate[2]) # Insert log odds ratio
 odds_ratio
 
 # Calculate the SE of the odds ratio using the delta method
@@ -427,7 +596,7 @@ new_dat <- cbind(expand.grid(
                          length.out=25)))
 
 # Make the predicted values                
-new_dat <- predict(m20, type="state", newdata = new_dat, appendData=TRUE)
+new_dat <- predict(m48, type="state", newdata = new_dat, appendData=TRUE)
 
 
 P1 <- ggplot(new_dat, aes(x = z.Distance.to.Exit, y = Predicted)) +
@@ -441,6 +610,8 @@ P1 <- ggplot(new_dat, aes(x = z.Distance.to.Exit, y = Predicted)) +
   )
 
 P1
+
+ggsave(P1, file = "P1.png", width = 8, height = 6, dpi = 300)
 
 ```
 
